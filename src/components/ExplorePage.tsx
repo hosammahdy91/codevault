@@ -17,17 +17,14 @@ export function ExplorePage({ onBack }: { onBack: () => void }) {
   async function handleLike(projectId: string) {
     if (!wallet) return
     const liked = await toggleLike(wallet, projectId)
-    setProjects(prev => prev.map(p =>
-      p.id === projectId ? { ...p, likes: (p.likes ?? 0) + (liked ? 1 : -1) } : p
-    ))
+    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, likes: (p.likes ?? 0) + (liked ? 1 : -1) } : p))
   }
 
   const langs = ['all', 'ts', 'js', 'py', 'rs', 'sol']
   const filtered = projects.filter(p => {
     const langOk = filter === 'all' || p.lang === filter
     const q = query.toLowerCase()
-    const queryOk = !q || p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q)
-    return langOk && queryOk
+    return langOk && (!q || p.name.toLowerCase().includes(q) || (p.description ?? '').toLowerCase().includes(q))
   })
 
   return (
@@ -54,21 +51,15 @@ export function ExplorePage({ onBack }: { onBack: () => void }) {
         </div>
         <input className="search-input" placeholder="Search projects..." value={query} onChange={e => setQuery(e.target.value)} />
       </div>
-      {loading ? (
-        <div className="profile-loading">Loading projects...</div>
-      ) : filtered.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">📭</div>
-          <div className="empty-title">No projects found</div>
-        </div>
+      {loading ? <div className="profile-loading">Loading projects...</div>
+      : filtered.length === 0 ? (
+        <div className="empty-state"><div className="empty-icon">📭</div><div className="empty-title">No projects found</div></div>
       ) : (
         <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
           {filtered.map(p => (
             <div key={p.id} className="snippet-card">
               <div className="card-top">
-                <div className={'card-lang-icon lang-'+(p.lang??'other')}>
-                  {(p.lang??'other').slice(0,2).toUpperCase()}
-                </div>
+                <div className={'card-lang-icon lang-'+(p.lang??'other')}>{(p.lang??'other').slice(0,2).toUpperCase()}</div>
                 <div className="card-info">
                   <div className="card-filename">{p.name}</div>
                   <div className="card-desc">{p.description}</div>
@@ -79,8 +70,7 @@ export function ExplorePage({ onBack }: { onBack: () => void }) {
                     <span>{p.created_at?.slice(0,10)}</span>
                   </div>
                 </div>
-                <button className="btn-icon" onClick={() => handleLike(p.id!)}
-                  style={{flexDirection:'column',gap:'2px',height:'auto',padding:'6px'}}>
+                <button className="btn-icon" onClick={() => handleLike(p.id!)} style={{flexDirection:'column',gap:'2px',height:'auto',padding:'6px'}}>
                   <span style={{fontSize:'14px'}}>+</span>
                   <span style={{fontSize:'10px',fontFamily:'var(--mono)'}}>{p.likes ?? 0}</span>
                 </button>

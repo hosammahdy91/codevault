@@ -17,8 +17,7 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
     if (!wallet) return
     Promise.all([getProfile(wallet), getMyProjects(wallet)]).then(([p, projs]) => {
       if (p) { setProfile(p); setUsername(p.username ?? ''); setBio(p.bio ?? '') }
-      setProjects(projs)
-      setLoading(false)
+      setProjects(projs); setLoading(false)
     })
   }, [wallet])
 
@@ -26,8 +25,7 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
     setSaving(true)
     await upsertProfile({ wallet_address: wallet, username, bio })
     setProfile(prev => ({ ...prev, username, bio }))
-    setEditing(false)
-    setSaving(false)
+    setEditing(false); setSaving(false)
   }
 
   const shortAddr = (a: string) => a.slice(0, 8) + '...' + a.slice(-6)
@@ -37,9 +35,7 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
     <div className="profile-page">
       <button className="btn btn-outline back-btn" onClick={onBack}>Back</button>
       <div className="profile-card">
-        <div className="profile-avatar">
-          {(profile.username ?? wallet).slice(0, 2).toUpperCase()}
-        </div>
+        <div className="profile-avatar">{(profile.username ?? wallet).slice(0, 2).toUpperCase()}</div>
         <div className="profile-info">
           {editing ? (
             <div className="profile-edit">
@@ -61,36 +57,19 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
         </div>
       </div>
       <div className="profile-stats">
-        {[
-          { val: projects.length, lbl: 'Projects' },
-          { val: projects.reduce((a,p) => a+(p.views??0),0), lbl: 'Views' },
-          { val: projects.reduce((a,p) => a+(p.likes??0),0), lbl: 'Likes' },
-        ].map(s => (
-          <div key={s.lbl} className="stat-block">
-            <span className="stat-val">{s.val}</span>
-            <span className="stat-lbl">{s.lbl}</span>
-          </div>
+        {[{val:projects.length,lbl:'Projects'},{val:projects.reduce((a,p)=>a+(p.views??0),0),lbl:'Views'},{val:projects.reduce((a,p)=>a+(p.likes??0),0),lbl:'Likes'}].map(s => (
+          <div key={s.lbl} className="stat-block"><span className="stat-val">{s.val}</span><span className="stat-lbl">{s.lbl}</span></div>
         ))}
       </div>
       <div className="profile-projects">
         <div className="section-title">My Projects</div>
         {projects.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">📭</div>
-            <div className="empty-title">No projects yet</div>
-          </div>
+          <div className="empty-state"><div className="empty-icon">📭</div><div className="empty-title">No projects yet</div></div>
         ) : projects.map(p => (
           <div key={p.id} className="project-row">
-            <div className={'card-lang-icon lang-'+(p.lang??'other')} style={{width:'32px',height:'32px',fontSize:'9px'}}>
-              {(p.lang??'other').slice(0,2).toUpperCase()}
-            </div>
-            <div style={{flex:1}}>
-              <div className="card-filename">{p.name}</div>
-              <div className="card-desc">{p.description}</div>
-            </div>
-            <div style={{fontFamily:'var(--mono)',fontSize:'10px',color:'var(--snow4)'}}>
-              {p.size} · {p.created_at?.slice(0,10)}
-            </div>
+            <div className={'card-lang-icon lang-'+(p.lang??'other')} style={{width:'32px',height:'32px',fontSize:'9px'}}>{(p.lang??'other').slice(0,2).toUpperCase()}</div>
+            <div style={{flex:1}}><div className="card-filename">{p.name}</div><div className="card-desc">{p.description}</div></div>
+            <div style={{fontFamily:'var(--mono)',fontSize:'10px',color:'var(--snow4)'}}>{p.size} · {p.created_at?.slice(0,10)}</div>
           </div>
         ))}
       </div>

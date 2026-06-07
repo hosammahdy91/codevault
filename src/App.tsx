@@ -14,26 +14,14 @@ export default function App() {
   const { connected } = useWallet()
   const [page, setPage] = useState<Page>('home')
   const [snippets, setSnippets] = useState<Snippet[]>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY)
-      return saved ? JSON.parse(saved) : []
-    } catch { return [] }
+    try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : [] } catch { return [] }
   })
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snippets))
-  }, [snippets])
-
+  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(snippets)) }, [snippets])
   const addSnippet = (s: Snippet) => setSnippets(prev => [s, ...prev])
 
   return (
     <div className="app">
-      <Navbar
-        onProfile={() => setPage('profile')}
-        onExplore={() => setPage('explore')}
-        onHome={() => setPage('home')}
-        currentPage={page}
-      />
+      <Navbar onProfile={() => setPage('profile')} onExplore={() => setPage('explore')} onHome={() => setPage('home')} currentPage={page} />
       {!connected ? <ConnectScreen /> :
        page === 'profile' ? <ProfilePage onBack={() => setPage('home')} /> :
        page === 'explore' ? <ExplorePage onBack={() => setPage('home')} /> :
