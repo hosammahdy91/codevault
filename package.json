@@ -13,6 +13,7 @@
     "@aptos-labs/ts-sdk": "^5.2.1",
     "@aptos-labs/wallet-adapter-ant-design": "^5.3.19",
     "@aptos-labs/wallet-adapter-react": "^8.3.3",
+    "@supabase/supabase-js": "^2.107.0",
     "antd": "^6.4.3",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
