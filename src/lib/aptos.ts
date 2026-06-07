@@ -4,6 +4,13 @@ export const aptosClient = new Aptos(
   new AptosConfig({ network: Network.TESTNET })
 )
 
+export interface FileEntry {
+  name: string
+  content: string
+  size: number
+  lang: string
+}
+
 export interface Snippet {
   id: string
   name: string
@@ -16,6 +23,7 @@ export interface Snippet {
   size: string
   views: number
   copies: number
+  files?: FileEntry[]
 }
 
 export async function hashCode(code: string): Promise<string> {
@@ -27,8 +35,7 @@ export async function hashCode(code: string): Promise<string> {
 }
 
 export async function registerSnippetOnChain(
-  signAndSubmitTransaction: (payload: any) => Promise<any>,
-  snippet: { name: string; lang: string; description: string; codeHash: string }
+  signAndSubmitTransaction: (payload: any) => Promise<any>
 ): Promise<void> {
   const payload = {
     data: {

@@ -1,16 +1,9 @@
 import { useState, useRef } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
-import { hashCode, registerSnippetOnChain, type Snippet } from '../lib/aptos'
+import { hashCode, registerSnippetOnChain, type Snippet, type FileEntry } from '../lib/aptos'
 
 interface Props { onPublish: (s: Snippet) => void }
 type Step = 'idle' | 'hashing' | 'signing' | 'done'
-
-interface FileEntry {
-  name: string
-  content: string
-  size: number
-  lang: string
-}
 
 function detectLang(filename: string): string {
   const ext = filename.split('.').pop()?.toLowerCase() ?? ''
@@ -29,13 +22,12 @@ function formatSize(bytes: number): string {
 
 export function PublishPanel({ onPublish }: Props) {
   const { signAndSubmitTransaction, account } = useWallet()
-  const [files, setFiles]       = useState<FileEntry[]>([])
-  const [activeFile, setActiveFile] = useState<FileEntry | null>(null)
+  const [files, setFiles]             = useState<FileEntry[]>([])
   const [projectName, setProjectName] = useState('')
-  const [desc, setDesc]         = useState('')
-  const [step, setStep]         = useState<Step>('idle')
-  const [error, setError]       = useState('')
-  const inputRef                = useRef<HTMLInputElement>(null)
+  const [desc, setDesc]               = useState('')
+  const [step, setStep]               = useState<Step>('idle')
+  const [error, setError]             = useState('')
+  const inputRef                      = useRef<HTMLInputElement>(null)
 
   const busy = step !== 'idle' && step !== 'done'
 
@@ -48,8 +40,14 @@ export function PublishPanel({ onPublish }: Props) {
     if (e.target.files) readFiles(Array.from(e.target.files))
   }
 
+  const IGNORE = ['node_modules', '.git', 'dist', '.next', '__pycache__', '.DS_Store']
+
   function readFiles(rawFiles: File[]) {
-    const readers = rawFiles.map(file =>
+    const filtered = rawFiles.filter(f => {
+      const path = (f as any).webkitRelativePath || f.name
+      return !IGNORE.some(ig => path.includes(ig))
+    })
+    const readers = filtered.map(file =>
       new Promise<FileEntry>(resolve => {
         const reader = new FileReader()
         reader.onload = () => resolve({
@@ -57,6 +55,9 @@ export function PublishPanel({ onPublish }: Props) {
           content: reader.result as string,
           size:    file.size,
           lang:    detectLang(file.name),
+        })
+        reader.onerror = () => resolve({
+          name: file.name, content: '', size: file.size, lang: detectLang(file.name)
         })
         reader.readAsText(file)
       })
@@ -71,15 +72,6 @@ export function PublishPanel({ onPublish }: Props) {
         })
         return merged
       })
-      if (!activeFile) setActiveFile(entries[0])
-    })
-  }
-
-  function removeFile(name: string) {
-    setFiles(prev => {
-      const next = prev.filter(f => f.name !== name)
-      if (activeFile?.name === name) setActiveFile(next[0] ?? null)
-      return next
     })
   }
 
@@ -95,10 +87,7 @@ export function PublishPanel({ onPublish }: Props) {
       const codeHash = await hashCode(combined)
 
       setStep('signing')
-      await registerSnippetOnChain(signAndSubmitTransaction, {
-        name: projectName, lang: files[0]?.lang ?? 'other',
-        description: desc, codeHash,
-      })
+      await registerSnippetOnChain(signAndSubmitTransaction)
 
       setStep('done')
       const totalSize = files.reduce((a, f) => a + f.size, 0)
@@ -118,7 +107,7 @@ export function PublishPanel({ onPublish }: Props) {
         files:       files,
       })
 
-      setFiles([]); setActiveFile(null)
+      setFiles([])
       setProjectName(''); setDesc('')
       setTimeout(() => setStep('idle'), 1500)
     } catch (e: any) {
@@ -133,7 +122,7 @@ export function PublishPanel({ onPublish }: Props) {
         <span className="panel-label">Publish Project</span>
         {files.length > 0 && (
           <span style={{fontSize:'11px', color:'var(--acid)', fontFamily:'var(--mono)'}}>
-            {files.length} file{files.length > 1 ? 's' : ''}
+            {files.length} files
           </span>
         )}
       </div>
@@ -153,7 +142,6 @@ export function PublishPanel({ onPublish }: Props) {
             placeholder="What does this project do?" disabled={busy} />
         </div>
 
-        {/* Drop Zone */}
         <div
           className={'drop-zone' + (files.length > 0 ? ' has-files' : '')}
           onDrop={onDrop}
@@ -161,18 +149,19 @@ export function PublishPanel({ onPublish }: Props) {
           onClick={() => inputRef.current?.click()}
         >
           <input
-            ref={inputRef} type="file" multiple
+            ref={inputRef}
+            type="file"
+            multiple
             style={{display:'none'}}
             onChange={onFileInput}
             accept=".ts,.tsx,.js,.jsx,.py,.rs,.sol,.json,.md,.css,.html,.txt"
-            // @ts-ignore
-            {...{'webkitdirectory': '', 'mozdirectory': ''}}
+            {...{'webkitdirectory': '', 'mozdirectory': ''} as any}
           />
           {files.length === 0 ? (
             <div className="drop-hint">
               <div className="drop-icon">📁</div>
-              <div className="drop-text">Drop folder here or click to select folder</div>
-              <div className="drop-sub">Select your entire project folder</div>
+              <div className="drop-text">Drop folder here or click to select</div>
+              <div className="drop-sub">Ignores node_modules & dist automatically</div>
             </div>
           ) : (
             <div className="drop-text" style={{fontSize:'11px', color:'var(--acid)'}}>
@@ -181,7 +170,6 @@ export function PublishPanel({ onPublish }: Props) {
           )}
         </div>
 
-        {/* Folder Summary */}
         {files.length > 0 && (
           <div className="folder-summary">
             <div className="folder-summary-left">
@@ -191,41 +179,23 @@ export function PublishPanel({ onPublish }: Props) {
                 <div className="folder-meta">{files.length} files · {formatSize(files.reduce((a,f) => a + f.size, 0))}</div>
               </div>
             </div>
-            <button className="folder-clear" onClick={() => { setFiles([]); setActiveFile(null) }}>
-              ×
+            <button className="folder-clear" onClick={() => setFiles([])}>
+              x
             </button>
           </div>
         )}
 
-        {/* Code Preview */}
-        {activeFile && (
-          <div className="file-preview">
-            <div className="file-preview-head">
-              <span style={{fontFamily:'var(--mono)', fontSize:'11px', color:'var(--snow2)'}}>
-                {activeFile.name}
-              </span>
-              <span style={{fontFamily:'var(--mono)', fontSize:'10px', color:'var(--snow4)'}}>
-                {formatSize(activeFile.size)}
-              </span>
-            </div>
-            <div className="file-preview-code">
-              <pre>{activeFile.content.slice(0, 1500)}{activeFile.content.length > 1500 ? '\n...' : ''}</pre>
-            </div>
-          </div>
-        )}
-
-        {/* Pipeline */}
         {step !== 'idle' && (
           <div className="pipeline" style={{marginTop:'12px'}}>
             {[
-              { key: 'hashing', label: 'Hashing all files',       badge: 'Local'  },
+              { key: 'hashing', label: 'Hashing all files',        badge: 'Local'  },
               { key: 'signing', label: 'Sign transaction (wallet)', badge: 'Wallet' },
             ].map((s, i) => {
               const idx = ['hashing','signing'].indexOf(step)
               const state = step === 'done' ? 'done' : i < idx ? 'done' : i === idx ? 'active' : 'pending'
               return (
                 <div key={s.key} className={'pipeline-step ' + state}>
-                  <div className="step-circle">{state === 'done' ? '✓' : i + 1}</div>
+                  <div className="step-circle">{state === 'done' ? 'v' : i + 1}</div>
                   <span className="step-name">{s.label}</span>
                   <span className="step-badge">{s.badge}</span>
                 </div>
