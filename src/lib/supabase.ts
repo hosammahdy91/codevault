@@ -9,6 +9,7 @@ export interface Profile {
   wallet_address: string
   username?: string
   bio?: string
+  avatar_url?: string
   created_at?: string
 }
 

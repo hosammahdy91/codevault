@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { getProfile, upsertProfile, getMyProjects, type Profile, type Project } from '../lib/supabase'
+import { supabase } from '../lib/supabase'
 
 export function ProfilePage({ onBack }: { onBack: () => void }) {
   const { account } = useWallet()
@@ -12,6 +13,8 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
   const [bio, setBio] = useState('')
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const avatarRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (!wallet) return
@@ -20,6 +23,26 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
       setProjects(projs); setLoading(false)
     })
   }, [wallet])
+
+  async function uploadAvatar(file: File) {
+    if (!wallet) return
+    setUploading(true)
+    try {
+      const ext = file.name.split('.').pop()
+      const path = wallet + '.' + ext
+      const { error } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true })
+      if (error) throw error
+      const { data } = supabase.storage.from('avatars').getPublicUrl(path)
+      const avatar_url = data.publicUrl + '?t=' + Date.now()
+      await upsertProfile({ wallet_address: wallet, avatar_url })
+      setProfile(prev => ({ ...prev, avatar_url }))
+    } catch (e) {
+      console.error('Upload failed:', e)
+    }
+    setUploading(false)
+  }
 
   async function saveProfile() {
     setSaving(true)
@@ -35,7 +58,28 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
     <div className="profile-page">
       <button className="btn btn-outline back-btn" onClick={onBack}>Back</button>
       <div className="profile-card">
-        <div className="profile-avatar">{(profile.username ?? wallet).slice(0, 2).toUpperCase()}</div>
+
+        {/* Avatar */}
+        <div className="avatar-wrap" onClick={() => avatarRef.current?.click()}>
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt="avatar" className="profile-avatar-img" />
+          ) : (
+            <div className="profile-avatar">
+              {(profile.username ?? wallet).slice(0, 2).toUpperCase()}
+            </div>
+          )}
+          <div className="avatar-overlay">
+            {uploading ? '...' : '📷'}
+          </div>
+          <input
+            ref={avatarRef}
+            type="file"
+            accept="image/*"
+            style={{ display: 'none' }}
+            onChange={e => e.target.files?.[0] && uploadAvatar(e.target.files[0])}
+          />
+        </div>
+
         <div className="profile-info">
           {editing ? (
             <div className="profile-edit">
@@ -56,20 +100,39 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
           )}
         </div>
       </div>
+
       <div className="profile-stats">
-        {[{val:projects.length,lbl:'Projects'},{val:projects.reduce((a,p)=>a+(p.views??0),0),lbl:'Views'},{val:projects.reduce((a,p)=>a+(p.likes??0),0),lbl:'Likes'}].map(s => (
-          <div key={s.lbl} className="stat-block"><span className="stat-val">{s.val}</span><span className="stat-lbl">{s.lbl}</span></div>
+        {[
+          { val: projects.length, lbl: 'Projects' },
+          { val: projects.reduce((a,p) => a+(p.views??0),0), lbl: 'Views' },
+          { val: projects.reduce((a,p) => a+(p.stars??0),0), lbl: 'Stars' },
+        ].map(s => (
+          <div key={s.lbl} className="stat-block">
+            <span className="stat-val">{s.val}</span>
+            <span className="stat-lbl">{s.lbl}</span>
+          </div>
         ))}
       </div>
+
       <div className="profile-projects">
         <div className="section-title">My Projects</div>
         {projects.length === 0 ? (
-          <div className="empty-state"><div className="empty-icon">📭</div><div className="empty-title">No projects yet</div></div>
+          <div className="empty-state">
+            <div className="empty-icon">📭</div>
+            <div className="empty-title">No projects yet</div>
+          </div>
         ) : projects.map(p => (
           <div key={p.id} className="project-row">
-            <div className={'card-lang-icon lang-'+(p.lang??'other')} style={{width:'32px',height:'32px',fontSize:'9px'}}>{(p.lang??'other').slice(0,2).toUpperCase()}</div>
-            <div style={{flex:1}}><div className="card-filename">{p.name}</div><div className="card-desc">{p.description}</div></div>
-            <div style={{fontFamily:'var(--mono)',fontSize:'10px',color:'var(--snow4)'}}>{p.size} · {p.created_at?.slice(0,10)}</div>
+            <div className={'card-lang-icon lang-'+(p.lang??'other')} style={{width:'32px',height:'32px',fontSize:'9px'}}>
+              {(p.lang??'other').slice(0,2).toUpperCase()}
+            </div>
+            <div style={{flex:1}}>
+              <div className="card-filename">{p.name}</div>
+              <div className="card-desc">{p.description}</div>
+            </div>
+            <div style={{fontFamily:'var(--mono)',fontSize:'10px',color:'var(--snow4)'}}>
+              {p.size} · {p.created_at?.slice(0,10)}
+            </div>
           </div>
         ))}
       </div>
