@@ -58,22 +58,30 @@ export async function toggleLike(wallet: string, projectId: string): Promise<boo
   return true
 }
 
-export async function toggleStar(wallet: string, projectId: string): Promise<boolean> {
-  const { data } = await supabase.from('stars').select('id').eq('wallet_address', wallet).eq('project_id', projectId).single()
-  if (data) {
-    // unstar
-    await supabase.from('stars').delete().eq('wallet_address', wallet).eq('project_id', projectId)
-    // decrement but never go below 0
-    await supabase.rpc('update_stars', { p_id: projectId, p_delta: -1 })
-    return false
-  }
-  // star
-  await supabase.from('stars').insert({ wallet_address: wallet, project_id: projectId })
-  await supabase.rpc('update_stars', { p_id: projectId, p_delta: 1 })
-  return true
-}
+
 
 export async function getStarredProjects(wallet: string): Promise<string[]> {
   const { data } = await supabase.from('stars').select('project_id').eq('wallet_address', wallet)
   return (data ?? []).map((s: any) => s.project_id)
+}
+
+export async function toggleStar(wallet: string, projectId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('stars')
+    .select('id')
+    .eq('wallet_address', wallet)
+    .eq('project_id', projectId)
+    .single()
+
+  if (data) {
+    await supabase.from('stars').delete()
+      .eq('wallet_address', wallet)
+      .eq('project_id', projectId)
+    await supabase.rpc('update_stars', { p_id: projectId, p_delta: -1 })
+    return false
+  }
+
+  await supabase.from('stars').insert({ wallet_address: wallet, project_id: projectId })
+  await supabase.rpc('update_stars', { p_id: projectId, p_delta: 1 })
+  return true
 }
