@@ -61,11 +61,15 @@ export async function toggleLike(wallet: string, projectId: string): Promise<boo
 export async function toggleStar(wallet: string, projectId: string): Promise<boolean> {
   const { data } = await supabase.from('stars').select('id').eq('wallet_address', wallet).eq('project_id', projectId).single()
   if (data) {
+    // unstar
     await supabase.from('stars').delete().eq('wallet_address', wallet).eq('project_id', projectId)
-    await supabase.from('projects').update({ stars: supabase.rpc('decrement_stars', { project_id: projectId }) }).eq('id', projectId)
+    // decrement but never go below 0
+    await supabase.rpc('update_stars', { p_id: projectId, p_delta: -1 })
     return false
   }
+  // star
   await supabase.from('stars').insert({ wallet_address: wallet, project_id: projectId })
+  await supabase.rpc('update_stars', { p_id: projectId, p_delta: 1 })
   return true
 }
 
