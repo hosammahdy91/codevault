@@ -26,15 +26,7 @@ export function ExplorePage({ onBack }: { onBack: () => void }) {
 
   async function handleStar(projectId: string) {
     if (!wallet) return
-    const wasStarred = starred.has(projectId)
-    // optimistic UI update
-    setStarred(prev => { const s = new Set(prev); wasStarred ? s.delete(projectId) : s.add(projectId); return s })
-    setProjects(prev => prev.map(p => p.id === projectId
-      ? { ...p, stars: Math.max(0, (p.stars ?? 0) + (wasStarred ? -1 : 1)) }
-      : p
-    ))
     await toggleStar(wallet, projectId)
-    // re-fetch to sync real count AND starred state from DB
     const [fresh, freshStars] = await Promise.all([
       getAllProjects(),
       getStarredProjects(wallet)
