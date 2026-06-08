@@ -34,9 +34,13 @@ export function ExplorePage({ onBack }: { onBack: () => void }) {
       : p
     ))
     await toggleStar(wallet, projectId)
-    // re-fetch to sync real count from DB
-    const fresh = await getAllProjects()
+    // re-fetch to sync real count AND starred state from DB
+    const [fresh, freshStars] = await Promise.all([
+      getAllProjects(),
+      getStarredProjects(wallet)
+    ])
     setProjects(fresh)
+    setStarred(new Set(freshStars))
   }
 
   const langs = ['all', 'ts', 'js', 'py', 'rs', 'sol']
