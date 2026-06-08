@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { getAllProjects, toggleStar, getStarredProjects, type Project } from '../lib/supabase'
 
@@ -12,20 +12,31 @@ export function ExplorePage({ onBack }: { onBack: () => void }) {
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('newest')
 
-  useEffect(() => {
-    Promise.all([getAllProjects(), wallet ? getStarredProjects(wallet) : []]).then(([data, stars]) => {
-      setProjects(data)
-      setStarred(new Set(stars))
-      setLoading(false)
-    })
+  const loadData = useCallback(async () => {
+    const [data, stars] = await Promise.all([
+      getAllProjects(),
+      wallet ? getStarredProjects(wallet) : Promise.resolve([])
+    ])
+    setProjects(data)
+    setStarred(new Set(stars))
+    setLoading(false)
   }, [wallet])
+
+  useEffect(() => { loadData() }, [loadData])
 
   async function handleStar(projectId: string) {
     if (!wallet) return
     const wasStarred = starred.has(projectId)
+    // optimistic UI update
     setStarred(prev => { const s = new Set(prev); wasStarred ? s.delete(projectId) : s.add(projectId); return s })
-    setProjects(prev => prev.map(p => p.id === projectId ? { ...p, stars: (p.stars ?? 0) + (wasStarred ? -1 : 1) } : p))
+    setProjects(prev => prev.map(p => p.id === projectId
+      ? { ...p, stars: Math.max(0, (p.stars ?? 0) + (wasStarred ? -1 : 1)) }
+      : p
+    ))
     await toggleStar(wallet, projectId)
+    // re-fetch to sync real count from DB
+    const fresh = await getAllProjects()
+    setProjects(fresh)
   }
 
   const langs = ['all', 'ts', 'js', 'py', 'rs', 'sol']
