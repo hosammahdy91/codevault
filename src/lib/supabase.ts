@@ -10,6 +10,8 @@ export interface Profile {
   username?: string
   bio?: string
   avatar_url?: string
+  followers_count?: number
+  following_count?: number
   created_at?: string
 }
 
@@ -121,4 +123,59 @@ export async function addComment(comment: Comment): Promise<Comment | null> {
 
 export async function deleteComment(id: string): Promise<void> {
   await supabase.from('comments').delete().eq('id', id)
+}
+
+export async function toggleFollow(follower: string, following: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('follows')
+    .select('id')
+    .eq('follower', follower)
+    .eq('following', following)
+    .single()
+
+  if (data) {
+    await supabase.from('follows').delete().eq('follower', follower).eq('following', following)
+    await supabase.rpc('update_follow_counts', { p_following: following, p_follower: follower, p_delta: -1 })
+    return false
+  }
+  await supabase.from('follows').insert({ follower, following })
+  await supabase.rpc('update_follow_counts', { p_following: following, p_follower: follower, p_delta: 1 })
+  return true
+}
+
+export async function isFollowing(follower: string, following: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('follows')
+    .select('id')
+    .eq('follower', follower)
+    .eq('following', following)
+    .single()
+  return !!data
+}
+
+export async function getFollowers(wallet: string): Promise<string[]> {
+  const { data } = await supabase.from('follows').select('follower').eq('following', wallet)
+  return (data ?? []).map((f: any) => f.follower)
+}
+
+export async function getFollowing(wallet: string): Promise<string[]> {
+  const { data } = await supabase.from('follows').select('following').eq('follower', wallet)
+  return (data ?? []).map((f: any) => f.following)
+}
+
+export async function getFeed(wallet: string): Promise<Project[]> {
+  const following = await getFollowing(wallet)
+  if (!following.length) return []
+  const { data } = await supabase
+    .from('projects')
+    .select('*')
+    .in('wallet_address', following)
+    .order('created_at', { ascending: false })
+    .limit(20)
+  return data ?? []
+}
+
+export async function getAllProfiles(): Promise<Profile[]> {
+  const { data } = await supabase.from('profiles').select('*').order('followers_count', { ascending: false })
+  return data ?? []
 }

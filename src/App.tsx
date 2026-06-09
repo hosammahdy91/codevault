@@ -8,23 +8,40 @@ import { ExplorePage } from './components/ExplorePage'
 import { type Snippet } from './lib/aptos'
 
 const STORAGE_KEY = 'codevault_snippets'
-type Page = 'home' | 'profile' | 'explore'
+type Page = 'home' | 'profile' | 'explore' | 'view-profile'
 
 export default function App() {
   const { connected } = useWallet()
   const [page, setPage] = useState<Page>('home')
+  const [viewWallet, setViewWallet] = useState<string | undefined>()
+
   const [snippets, setSnippets] = useState<Snippet[]>(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : [] } catch { return [] }
   })
-  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(snippets)) }, [snippets])
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snippets))
+  }, [snippets])
+
   const addSnippet = (s: Snippet) => setSnippets(prev => [s, ...prev])
+
+  function handleViewProfile(wallet: string) {
+    setViewWallet(wallet)
+    setPage('view-profile')
+  }
 
   return (
     <div className="app">
-      <Navbar onProfile={() => setPage('profile')} onExplore={() => setPage('explore')} onHome={() => setPage('home')} currentPage={page} />
+      <Navbar
+        onProfile={() => setPage('profile')}
+        onExplore={() => setPage('explore')}
+        onHome={() => setPage('home')}
+        currentPage={page}
+      />
       {!connected ? <ConnectScreen /> :
        page === 'profile' ? <ProfilePage onBack={() => setPage('home')} /> :
-       page === 'explore' ? <ExplorePage onBack={() => setPage('home')} /> :
+       page === 'view-profile' ? <ProfilePage onBack={() => setPage('explore')} viewWallet={viewWallet} /> :
+       page === 'explore' ? <ExplorePage onBack={() => setPage('home')} onViewProfile={handleViewProfile} /> :
        <Dashboard snippets={snippets} onPublish={addSnippet} />}
     </div>
   )
