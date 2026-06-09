@@ -90,3 +90,35 @@ export async function toggleStar(wallet: string, projectId: string): Promise<boo
 export async function deleteProject(id: string): Promise<void> {
   await supabase.from('projects').delete().eq('id', id)
 }
+
+export interface Comment {
+  id?: string
+  project_id: string
+  wallet_address: string
+  username?: string
+  avatar_url?: string
+  content: string
+  created_at?: string
+}
+
+export async function getComments(projectId: string): Promise<Comment[]> {
+  const { data } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: true })
+  return data ?? []
+}
+
+export async function addComment(comment: Comment): Promise<Comment | null> {
+  const { data } = await supabase
+    .from('comments')
+    .insert(comment)
+    .select()
+    .single()
+  return data
+}
+
+export async function deleteComment(id: string): Promise<void> {
+  await supabase.from('comments').delete().eq('id', id)
+}

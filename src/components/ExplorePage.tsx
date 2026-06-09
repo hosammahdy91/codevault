@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { getAllProjects, toggleStar, getStarredProjects, type Project } from '../lib/supabase'
+import { CommentsSection } from './CommentsSection'
 
 export function ExplorePage({ onBack }: { onBack: () => void }) {
   const { account } = useWallet()
@@ -11,6 +12,7 @@ export function ExplorePage({ onBack }: { onBack: () => void }) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
   const [sort, setSort] = useState('newest')
+  const [openComments, setOpenComments] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     const [data, stars] = await Promise.all([
@@ -113,7 +115,19 @@ export function ExplorePage({ onBack }: { onBack: () => void }) {
                 <div className="card-chain">
                   <span className="chain-badge"><span className="chain-dot" /> On-chain</span>
                   <span style={{fontFamily:'var(--mono)',fontSize:'10px'}}>Hash: {p.code_hash}</span>
+                  <button
+                    className="btn-icon"
+                    style={{marginLeft:'auto', fontSize:'11px', width:'auto', padding:'0 10px', gap:'5px'}}
+                    onClick={() => setOpenComments(openComments === p.id ? null : p.id!)}
+                  >
+                    💬 {openComments === p.id ? 'Hide' : 'Comments'}
+                  </button>
                 </div>
+                {openComments === p.id && (
+                  <div style={{borderTop:'1px solid var(--line)', padding:'16px 18px'}}>
+                    <CommentsSection projectId={p.id!} />
+                  </div>
+                )}
               </div>
             )
           })}
