@@ -86,3 +86,7 @@ export async function toggleStar(wallet: string, projectId: string): Promise<boo
   await supabase.rpc('update_stars', { p_id: projectId, p_delta: 1 })
   return true
 }
+
+export async function deleteProject(id: string): Promise<void> {
+  await supabase.from('projects').delete().eq('id', id)
+}

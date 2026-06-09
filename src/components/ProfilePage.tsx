@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
-import { getProfile, upsertProfile, getMyProjects, type Profile, type Project } from '../lib/supabase'
+import { getProfile, upsertProfile, getMyProjects, deleteProject, type Profile, type Project } from '../lib/supabase'
 import { supabase } from '../lib/supabase'
 
 export function ProfilePage({ onBack }: { onBack: () => void }) {
@@ -52,6 +52,12 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
   }
 
   const shortAddr = (a: string) => a.slice(0, 8) + '...' + a.slice(-6)
+
+  async function handleDelete(id: string, name: string) {
+    if (!confirm('Delete "' + name + '"? This cannot be undone.')) return
+    await deleteProject(id)
+    setProjects(prev => prev.filter(p => p.id !== id))
+  }
   if (loading) return <div className="profile-loading">Loading profile...</div>
 
   return (
@@ -133,6 +139,16 @@ export function ProfilePage({ onBack }: { onBack: () => void }) {
             <div style={{fontFamily:'var(--mono)',fontSize:'10px',color:'var(--snow4)'}}>
               {p.size} · {p.created_at?.slice(0,10)}
             </div>
+            <button
+              onClick={() => handleDelete(p.id!, p.name)}
+              style={{
+                background:'transparent', border:'1px solid rgba(255,77,106,0.2)',
+                color:'var(--rose)', borderRadius:'6px', padding:'4px 10px',
+                fontSize:'11px', cursor:'pointer', flexShrink:0
+              }}
+            >
+              Delete
+            </button>
           </div>
         ))}
       </div>
