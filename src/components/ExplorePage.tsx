@@ -1,13 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
-import { getAllProjects, toggleStar, getStarredProjects, getFeed, type Project } from '../lib/supabase'
+import { getAllProjects, toggleStar, getStarredProjects, getFeed, toggleFollow, getFollowing, type Project } from '../lib/supabase'
 import { CommentsSection } from './CommentsSection'
 
-export function ExplorePage({ onBack, onViewProfile, onViewProject }: { onBack: () => void; onViewProfile?: (wallet: string) => void; onViewProject?: (p: Project) => void }) {
+export function ExplorePage({ onBack, onViewProfile, onViewProject }: {
+  onBack: () => void
+  onViewProfile?: (wallet: string) => void
+  onViewProject?: (p: Project) => void
+}) {
   const { account } = useWallet()
   const wallet = account?.address.toString() ?? ''
   const [projects, setProjects] = useState<Project[]>([])
   const [starred, setStarred] = useState<Set<string>>(new Set())
+  const [followed, setFollowed] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState('all')
@@ -17,21 +22,21 @@ export function ExplorePage({ onBack, onViewProfile, onViewProject }: { onBack: 
   const [feed, setFeed] = useState<Project[]>([])
 
   const loadData = useCallback(async () => {
-    const [data, stars] = await Promise.all([
+    const [data, stars, follows] = await Promise.all([
       getAllProjects(),
-      wallet ? getStarredProjects(wallet) : Promise.resolve([])
+      wallet ? getStarredProjects(wallet) : Promise.resolve([]),
+      wallet ? getFollowing(wallet) : Promise.resolve([]),
     ])
     setProjects(data)
     setStarred(new Set(stars))
+    setFollowed(new Set(follows))
     setLoading(false)
   }, [wallet])
 
   useEffect(() => { loadData() }, [loadData])
 
   useEffect(() => {
-    if (tab === 'feed' && wallet) {
-      getFeed(wallet).then(setFeed)
-    }
+    if (tab === 'feed' && wallet) getFeed(wallet).then(setFeed)
   }, [tab, wallet])
 
   async function handleStar(projectId: string) {
@@ -40,6 +45,16 @@ export function ExplorePage({ onBack, onViewProfile, onViewProject }: { onBack: 
     const [fresh, freshStars] = await Promise.all([getAllProjects(), getStarredProjects(wallet)])
     setProjects(fresh)
     setStarred(new Set(freshStars))
+  }
+
+  async function handleFollow(targetWallet: string) {
+    if (!wallet || targetWallet === wallet) return
+    const nowFollowing = await toggleFollow(wallet, targetWallet)
+    setFollowed(prev => {
+      const s = new Set(prev)
+      nowFollowing ? s.add(targetWallet) : s.delete(targetWallet)
+      return s
+    })
   }
 
   const langs = ['all', 'ts', 'js', 'py', 'rs', 'sol']
@@ -58,6 +73,9 @@ export function ExplorePage({ onBack, onViewProfile, onViewProject }: { onBack: 
 
   const ProjectCard = ({ p }: { p: Project }) => {
     const isStarred = starred.has(p.id!)
+    const isFollowed = followed.has(p.wallet_address)
+    const isOwn = p.wallet_address === wallet
+
     return (
       <div className="snippet-card">
         <div className="card-top">
@@ -65,7 +83,13 @@ export function ExplorePage({ onBack, onViewProfile, onViewProject }: { onBack: 
             {(p.lang ?? 'other').slice(0, 2).toUpperCase()}
           </div>
           <div className="card-info">
-            <div className="card-filename" style={{cursor:'pointer'}} onClick={() => onViewProject?.(p)}>{p.name}</div>
+            <div
+              className="card-filename"
+              style={{cursor:'pointer'}}
+              onClick={() => onViewProject?.(p)}
+            >
+              {p.name}
+            </div>
             <div className="card-desc">{p.description}</div>
             <div className="card-meta">
               <span
@@ -74,22 +98,35 @@ export function ExplorePage({ onBack, onViewProfile, onViewProject }: { onBack: 
               >
                 {p.wallet_address.slice(0,6)}...{p.wallet_address.slice(-4)}
               </span>
+              {wallet && !isOwn && (
+                <span
+                  onClick={() => handleFollow(p.wallet_address)}
+                  style={{
+                    cursor: 'pointer',
+                    fontSize: '10px',
+                    padding: '1px 8px',
+                    borderRadius: '10px',
+                    border: isFollowed ? '1px solid var(--snow4)' : '1px solid rgba(198,255,0,0.4)',
+                    color: isFollowed ? 'var(--snow4)' : 'var(--acid)',
+                    background: isFollowed ? 'transparent' : 'var(--acid-glow)',
+                  }}
+                >
+                  {isFollowed ? 'Following' : '+ Follow'}
+                </span>
+              )}
               <span>Views: {p.views ?? 0}</span>
               <span>{p.size}</span>
               <span>{p.created_at?.slice(0,10)}</span>
             </div>
           </div>
-          <button
-            className={'star-btn' + (isStarred ? ' starred' : '')}
-            onClick={() => handleStar(p.id!)}
-          >
+          <button className={'star-btn' + (isStarred ? ' starred' : '')} onClick={() => handleStar(p.id!)}>
             <span className="star-icon">{isStarred ? '★' : '☆'}</span>
             <span className="star-count">{p.stars ?? 0}</span>
           </button>
         </div>
         <div className="card-chain">
           <span className="chain-badge"><span className="chain-dot" /> On-chain</span>
-          <span style={{fontFamily:'var(--mono)', fontSize:'10px'}}>Hash: {p.code_hash}</span>
+          <span style={{fontFamily:'var(--mono)',fontSize:'10px'}}>Hash: {p.code_hash}</span>
           <button
             className="btn-icon"
             style={{marginLeft:'auto', fontSize:'11px', width:'auto', padding:'0 10px'}}
@@ -123,7 +160,6 @@ export function ExplorePage({ onBack, onViewProfile, onViewProject }: { onBack: 
         </div>
       </div>
 
-      {/* Tabs */}
       <div style={{display:'flex', gap:'4px', marginBottom:'16px'}}>
         <button className={'filter-chip' + (tab === 'explore' ? ' active' : '')} onClick={() => setTab('explore')}>Explore</button>
         <button className={'filter-chip' + (tab === 'feed' ? ' active' : '')} onClick={() => setTab('feed')}>Feed</button>
