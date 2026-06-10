@@ -5,15 +5,18 @@ import { Dashboard } from './components/Dashboard'
 import { Navbar } from './components/Navbar'
 import { ProfilePage } from './components/ProfilePage'
 import { ExplorePage } from './components/ExplorePage'
+import { ProjectPage } from './components/ProjectPage'
 import { type Snippet } from './lib/aptos'
+import { type Project } from './lib/supabase'
 
 const STORAGE_KEY = 'codevault_snippets'
-type Page = 'home' | 'profile' | 'explore' | 'view-profile'
+type Page = 'home' | 'profile' | 'explore' | 'view-profile' | 'project'
 
 export default function App() {
   const { connected } = useWallet()
   const [page, setPage] = useState<Page>('home')
   const [viewWallet, setViewWallet] = useState<string | undefined>()
+  const [viewProject, setViewProject] = useState<Project | undefined>()
 
   const [snippets, setSnippets] = useState<Snippet[]>(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s) : [] } catch { return [] }
@@ -30,6 +33,11 @@ export default function App() {
     setPage('view-profile')
   }
 
+  function handleViewProject(p: Project) {
+    setViewProject(p)
+    setPage('project')
+  }
+
   return (
     <div className="app">
       <Navbar
@@ -39,9 +47,10 @@ export default function App() {
         currentPage={page}
       />
       {!connected ? <ConnectScreen /> :
-       page === 'profile' ? <ProfilePage onBack={() => setPage('home')} /> :
+       page === 'profile'      ? <ProfilePage onBack={() => setPage('home')} /> :
        page === 'view-profile' ? <ProfilePage onBack={() => setPage('explore')} viewWallet={viewWallet} /> :
-       page === 'explore' ? <ExplorePage onBack={() => setPage('home')} onViewProfile={handleViewProfile} /> :
+       page === 'project'      ? <ProjectPage project={viewProject!} onBack={() => setPage('explore')} onViewProfile={handleViewProfile} /> :
+       page === 'explore'      ? <ExplorePage onBack={() => setPage('home')} onViewProfile={handleViewProfile} onViewProject={handleViewProject} /> :
        <Dashboard snippets={snippets} onPublish={addSnippet} />}
     </div>
   )

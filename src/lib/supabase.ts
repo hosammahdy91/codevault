@@ -28,6 +28,7 @@ export interface Project {
   views?: number
   likes?: number
   stars?: number
+  code?: string
   created_at?: string
 }
 

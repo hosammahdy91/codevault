@@ -3,7 +3,7 @@ import { useWallet } from '@aptos-labs/wallet-adapter-react'
 import { getAllProjects, toggleStar, getStarredProjects, getFeed, type Project } from '../lib/supabase'
 import { CommentsSection } from './CommentsSection'
 
-export function ExplorePage({ onBack, onViewProfile }: { onBack: () => void; onViewProfile?: (wallet: string) => void }) {
+export function ExplorePage({ onBack, onViewProfile, onViewProject }: { onBack: () => void; onViewProfile?: (wallet: string) => void; onViewProject?: (p: Project) => void }) {
   const { account } = useWallet()
   const wallet = account?.address.toString() ?? ''
   const [projects, setProjects] = useState<Project[]>([])
@@ -65,7 +65,7 @@ export function ExplorePage({ onBack, onViewProfile }: { onBack: () => void; onV
             {(p.lang ?? 'other').slice(0, 2).toUpperCase()}
           </div>
           <div className="card-info">
-            <div className="card-filename">{p.name}</div>
+            <div className="card-filename" style={{cursor:'pointer'}} onClick={() => onViewProject?.(p)}>{p.name}</div>
             <div className="card-desc">{p.description}</div>
             <div className="card-meta">
               <span
