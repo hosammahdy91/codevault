@@ -24,6 +24,7 @@ export interface Snippet {
   views: number
   copies: number
   files?: FileEntry[]
+  is_private?: boolean
 }
 
 export async function hashCode(code: string): Promise<string> {

@@ -56,6 +56,11 @@ export function SnippetCard({ snippet: s }: { snippet: Snippet }) {
         </div>
       )}
       <div className="card-chain">
+        {s.is_private && (
+          <span style={{fontFamily:'var(--mono)',fontSize:'10px',color:'var(--amber)',background:'var(--amber-dim)',padding:'1px 8px',borderRadius:'4px',border:'1px solid rgba(255,179,64,0.2)'}}>
+            🔒 Private
+          </span>
+        )}
         <span className="chain-badge">
           <span className="chain-dot" />
           {' On-chain'}

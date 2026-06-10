@@ -29,6 +29,7 @@ export interface Project {
   likes?: number
   stars?: number
   code?: string
+  is_private?: boolean
   created_at?: string
 }
 
@@ -45,7 +46,7 @@ export async function publishProject(project: Project): Promise<Project | null> 
   return data
 }
 export async function getAllProjects(): Promise<Project[]> {
-  const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false })
+  const { data } = await supabase.from('projects').select('*').eq('is_private', false).order('created_at', { ascending: false })
   return data ?? []
 }
 export async function getMyProjects(wallet: string): Promise<Project[]> {

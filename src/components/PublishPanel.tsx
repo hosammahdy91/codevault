@@ -24,6 +24,7 @@ export function PublishPanel({ onPublish }: Props) {
   const [desc, setDesc] = useState('')
   const [step, setStep] = useState<Step>('idle')
   const [error, setError] = useState('')
+  const [isPrivate, setIsPrivate] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const busy = step !== 'idle' && step !== 'done'
   const IGNORE = ['node_modules', '.git', 'dist', '.next', '__pycache__', '.DS_Store']
@@ -58,7 +59,7 @@ export function PublishPanel({ onPublish }: Props) {
       setStep('saving')
       const totalSize = files.reduce((a, f) => a + f.size, 0)
       const langs = [...new Set(files.map(f => f.lang))]
-      await publishProject({ wallet_address: account.address.toString(), name: projectName, description: desc || undefined, code_hash: codeHash.slice(0,20)+'...', tags: langs, size: formatSize(totalSize), lang: files[0]?.lang ?? 'other', files_count: files.length, views: 0, likes: 0 })
+      await publishProject({ wallet_address: account.address.toString(), name: projectName, description: desc || undefined, code_hash: codeHash.slice(0,20)+'...', tags: langs, size: formatSize(totalSize), lang: files[0]?.lang ?? 'other', files_count: files.length, views: 0, likes: 0, is_private: isPrivate })
       setStep('done')
       onPublish({ id:'snp_'+Date.now(), name:projectName, lang:files[0]?.lang??'other', description:desc||'No description.', code:files.map(f=>'// === '+f.name+' ===\n'+f.content).join('\n\n'), tags:langs, codeHash:codeHash.slice(0,20)+'...', timestamp:new Date().toISOString().slice(0,10), size:formatSize(totalSize), views:0, copies:0, files })
       setFiles([]); setProjectName(''); setDesc('')
@@ -121,6 +122,18 @@ export function PublishPanel({ onPublish }: Props) {
             </div>
           </div>
         )}
+        <div className="privacy-toggle">
+          <button className={'privacy-opt' + (!isPrivate ? ' active' : '')} onClick={() => setIsPrivate(false)} type="button">
+            🌍 Public
+          </button>
+          <button className={'privacy-opt' + (isPrivate ? ' active' : '')} onClick={() => setIsPrivate(true)} type="button">
+            🔒 Private
+          </button>
+        </div>
+        <p style={{fontSize:'11px',color:'var(--snow4)',marginBottom:'8px'}}>
+          {isPrivate ? 'Only you can see this project.' : 'Visible to everyone on Explore.'}
+        </p>
+
         {error && <p className="field-error">{error}</p>}
         <button className="btn btn-acid full" onClick={publish} disabled={busy||files.length===0}>
           {busy?'Publishing...':step==='done'?'Published!':'Publish to Aptos'}

@@ -1024,3 +1024,30 @@ pre {
   border-radius: var(--r2);
   padding: 20px;
 }
+
+/* ── PRIVACY TOGGLE ── */
+.privacy-toggle {
+  display: flex;
+  gap: 1px;
+  background: var(--ink3);
+  border: 1px solid var(--line2);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.privacy-opt {
+  flex: 1;
+  padding: 7px;
+  font-size: 12px;
+  font-family: var(--sans);
+  font-weight: 500;
+  background: transparent;
+  color: var(--snow3);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.privacy-opt:hover { background: var(--ink4); color: var(--snow); }
+.privacy-opt.active { background: var(--acid-glow); color: var(--acid); }
