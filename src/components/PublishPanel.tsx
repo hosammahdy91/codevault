@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useWallet } from '@aptos-labs/wallet-adapter-react'
-import { hashCode, registerSnippetOnChain, type Snippet, type FileEntry } from '../lib/aptos'
+import { hashCode, registerSnippetOnChain, buildFileTree, type Snippet, type FileEntry } from '../lib/aptos'
 import { publishProject } from '../lib/supabase'
 
 interface Props { onPublish: (s: Snippet) => void }
@@ -183,6 +183,7 @@ export function PublishPanel({ onPublish }: Props) {
       setStep('saving')
       const totalSize = files.reduce((a, f) => a + f.size, 0)
       const langs = [...new Set(files.map(f => f.lang))]
+      const fileTree = buildFileTree(files)
       await publishProject({
         wallet_address: account.address.toString(),
         name: projectName, description: desc || undefined,
@@ -190,7 +191,8 @@ export function PublishPanel({ onPublish }: Props) {
         tags: langs, size: formatSize(totalSize),
         lang: files[0]?.lang ?? 'other',
         files_count: files.length, views: 0, likes: 0,
-        is_private: isPrivate
+        is_private: isPrivate,
+        file_tree: fileTree
       })
       setStep('done')
       onPublish({

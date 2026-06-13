@@ -30,6 +30,7 @@ export interface Project {
   stars?: number
   code?: string
   is_private?: boolean
+  file_tree?: any
   created_at?: string
 }
 

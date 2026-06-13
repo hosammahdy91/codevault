@@ -6,9 +6,61 @@ export const aptosClient = new Aptos(
 
 export interface FileEntry {
   name: string
+  path: string
   content: string
   size: number
   lang: string
+}
+
+export interface TreeNode {
+  name: string
+  path: string
+  type: 'file' | 'dir'
+  size?: number
+  lang?: string
+  children?: TreeNode[]
+}
+
+export function buildFileTree(files: FileEntry[]): TreeNode[] {
+  const root: TreeNode[] = []
+
+  files.forEach(file => {
+    const parts = (file.path || file.name).split('/')
+    let current = root
+
+    parts.forEach((part, i) => {
+      const isFile = i === parts.length - 1
+      let node = current.find(n => n.name === part)
+
+      if (!node) {
+        node = {
+          name: part,
+          path: parts.slice(0, i + 1).join('/'),
+          type: isFile ? 'file' : 'dir',
+          size: isFile ? file.size : undefined,
+          lang: isFile ? file.lang : undefined,
+          children: isFile ? undefined : [],
+        }
+        current.push(node)
+      }
+
+      if (!isFile && node.children) {
+        current = node.children
+      }
+    })
+  })
+
+  // Sort: dirs first, then files
+  const sortNodes = (nodes: TreeNode[]): TreeNode[] => {
+    return nodes
+      .sort((a, b) => {
+        if (a.type !== b.type) return a.type === 'dir' ? -1 : 1
+        return a.name.localeCompare(b.name)
+      })
+      .map(n => ({ ...n, children: n.children ? sortNodes(n.children) : undefined }))
+  }
+
+  return sortNodes(root)
 }
 
 export interface Snippet {
