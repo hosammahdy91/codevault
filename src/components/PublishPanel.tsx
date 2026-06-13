@@ -192,7 +192,8 @@ export function PublishPanel({ onPublish }: Props) {
         lang: files[0]?.lang ?? 'other',
         files_count: files.length, views: 0, likes: 0,
         is_private: isPrivate,
-        file_tree: fileTree
+        file_tree: fileTree,
+        code: files.map(f => '// === ' + f.name + ' ===\n' + f.content).join('\n\n')
       })
       setStep('done')
       onPublish({
