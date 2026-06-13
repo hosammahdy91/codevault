@@ -36,11 +36,13 @@ export function FileTree({ nodes, files, onSelectFile, activeFile, depth = 0 }: 
   }
 
   function handleFileClick(node: TreeNode) {
-    // Try multiple matching strategies
-    let file = files.find(f => f.path === node.path)
-    if (!file) file = files.find(f => f.path === node.name)
-    if (!file) file = files.find(f => f.name === node.name)
-    if (!file) file = files.find(f => (f.path || f.name).endsWith(node.name))
+    // Match by name since paths may vary
+    const nodeName = node.name
+    let file = files.find(f => f.name === nodeName)
+    if (!file) file = files.find(f => f.path === node.path)
+    if (!file) file = files.find(f => (f.path || f.name).includes(nodeName))
+    if (!file) file = files.find(f => nodeName.includes(f.name))
+    console.log('Click:', nodeName, 'Found:', file?.name, 'Files:', files.map(f=>f.name))
     if (file) onSelectFile(file)
   }
 
