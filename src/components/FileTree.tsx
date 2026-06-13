@@ -10,13 +10,18 @@ interface Props {
 }
 
 function formatSize(bytes: number): string {
+  if (!bytes) return ''
   if (bytes < 1024) return bytes + ' B'
   return (bytes / 1024).toFixed(1) + ' KB'
 }
 
 const LANG_COLORS: Record<string, string> = {
-  ts: '#4f8fff', js: '#ffb340', py: '#c6ff00',
-  rs: '#ff4d6a', sol: '#9d6fff', other: '#6b7a94'
+  ts: '#4f8fff', tsx: '#4f8fff',
+  js: '#ffb340', jsx: '#ffb340',
+  py: '#c6ff00', rs: '#ff4d6a',
+  sol: '#9d6fff', other: '#6b7a94',
+  css: '#ff79c6', md: '#8be9fd',
+  json: '#f1fa8c', html: '#ff5555'
 }
 
 export function FileTree({ nodes, files, onSelectFile, activeFile, depth = 0 }: Props) {
@@ -31,8 +36,17 @@ export function FileTree({ nodes, files, onSelectFile, activeFile, depth = 0 }: 
   }
 
   function handleFileClick(node: TreeNode) {
-    const file = files.find(f => (f.path || f.name) === node.path || f.name === node.name)
+    // Try multiple matching strategies
+    let file = files.find(f => f.path === node.path)
+    if (!file) file = files.find(f => f.path === node.name)
+    if (!file) file = files.find(f => f.name === node.name)
+    if (!file) file = files.find(f => (f.path || f.name).endsWith(node.name))
     if (file) onSelectFile(file)
+  }
+
+  const getLangColor = (name: string) => {
+    const ext = name.split('.').pop()?.toLowerCase() ?? 'other'
+    return LANG_COLORS[ext] ?? LANG_COLORS.other
   }
 
   return (
@@ -40,15 +54,22 @@ export function FileTree({ nodes, files, onSelectFile, activeFile, depth = 0 }: 
       {nodes.map(node => (
         <div key={node.path}>
           <div
-            className={'file-tree-row' + (activeFile === node.path ? ' active' : '')}
+            className={'file-tree-row' + (activeFile === node.path || activeFile === node.name ? ' active' : '')}
             style={{paddingLeft: 12 + depth * 16 + 'px'}}
             onClick={() => node.type === 'dir' ? toggleDir(node.path) : handleFileClick(node)}
           >
             <span className="file-tree-icon">
-              {node.type === 'dir'
-                ? (collapsed.has(node.path) ? '▶' : '▼')
-                : <span style={{width:'8px',height:'8px',borderRadius:'2px',background:LANG_COLORS[node.lang??'other'],display:'inline-block',marginRight:'2px'}} />
-              }
+              {node.type === 'dir' ? (
+                <span style={{fontSize:'10px', color:'var(--snow4)'}}>
+                  {collapsed.has(node.path) ? '▶' : '▼'}
+                </span>
+              ) : (
+                <span style={{
+                  width:'8px', height:'8px', borderRadius:'2px',
+                  background: getLangColor(node.name),
+                  display:'inline-block'
+                }} />
+              )}
             </span>
             <span className="file-tree-row-name">
               {node.type === 'dir'
@@ -56,7 +77,7 @@ export function FileTree({ nodes, files, onSelectFile, activeFile, depth = 0 }: 
                 : node.name
               }
             </span>
-            {node.type === 'file' && node.size && (
+            {node.type === 'file' && node.size != null && (
               <span className="file-tree-row-size">{formatSize(node.size)}</span>
             )}
           </div>
