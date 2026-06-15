@@ -29,6 +29,15 @@ export function ProjectPage({ project: p, onBack, onViewProfile }: Props) {
     getStarredProjects(wallet).then(list => setIsStarred(list.includes(p.id!)))
   }, [wallet, p.id])
 
+  useEffect(() => {
+    // Increment view count
+    if (p.id) {
+      import('../lib/supabase').then(({ supabase }) => {
+        supabase.rpc('increment_views', { project_id: p.id })
+      })
+    }
+  }, [p.id])
+
   async function handleStar() {
     if (!wallet) return
     setLoading(true)

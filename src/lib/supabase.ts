@@ -51,7 +51,11 @@ export async function getAllProjects(): Promise<Project[]> {
   return data ?? []
 }
 export async function getMyProjects(wallet: string): Promise<Project[]> {
-  const { data } = await supabase.from('projects').select('*').eq('wallet_address', wallet).order('created_at', { ascending: false })
+  const { data } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('wallet_address', wallet)
+    .order('created_at', { ascending: false })
   return data ?? []
 }
 export async function toggleLike(wallet: string, projectId: string): Promise<boolean> {
